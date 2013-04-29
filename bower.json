@@ -1,0 +1,13 @@
+{
+  "name": "angular-audio-player",
+  "version": "0.0.1",
+  "main": "angular-audio-player.min.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "components"
+  ],
+  "dependencies": {
+    "angular": "1.0.6"
+  }
+}
