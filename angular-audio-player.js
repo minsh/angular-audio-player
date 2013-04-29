@@ -106,14 +106,14 @@
     }, _audio = function (element, s) { 
       this.element = element;
       this.wrapper = element.parent();
-      this.source = element.children('<source>') || element;
+      //this.source = element.children('<source>') || element;
       this.settings = s.settings;
       this.config = s;
       //not working.
-      this.mp3 = (function(element) {
+      /*this.mp3 = (function(element) {
         var source = element.children('<source>')[0];
         return element.attr('src') || (source ? source.attr('src') : null);
-      })(element);
+      })(element);*/
       this.index = 0;
       this.loadStartedCalled = false;
       this.loadedPercent = 0;
