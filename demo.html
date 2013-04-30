@@ -32,6 +32,7 @@
         <audio id="audioTag2">
           <source src="07. The Battle Of Evermore.mp3">
         </audio>
+        <button ng-click="tag('e')">Change to e</button>
       </div>
     </div>
     <script src="angular.min.js"></script>
@@ -39,7 +40,11 @@
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
     <script>
       angular.module('angularAudio', ['ngAudioPlayer']).controller('audioCtrl', ['$scope', '$player', function($scope, $player){
-        var player = $player.create('#audioTag', {tags:{d:[1000, 2000, 3000, 4000], f:[5000, 11000, 20000, 30000, 40000, 90000]}});
+        var player = $player.create('#audioTag', {tags:{d:[1000, 2000, 3000, 4000], f:[5000, 11000, 20000, 30000, 40000, 90000], e:[90000, 180000, 270000, 360000, 450000, 540000, 80000]}});
+        $scope.tag = function (g) {
+          $player.setTag(g, player);
+          console.log('changed');
+        };
         $player.setTag('f', player);
         $scope.text = "Hi angular player";
       }]);

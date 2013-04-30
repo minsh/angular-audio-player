@@ -29,8 +29,56 @@
       audio.element = function() {
         return angular.element(document.querySelector('#angular-audio-player'));
       }();
-    }, _attachFlashEvents = function () {
-      
+    }, _attachFlashEvents = function (wrapper, audio) {
+      audio['swfReady'] = false;
+      audio['load'] = function() {
+        // If the swf isn't ready yet then just set `audio.mp3`. `init()` will load it in once the swf is ready.
+        if (audio.swfReady) audio.element[0].load(audio.mp3);
+        console.log(audio.element[0]);
+      };
+      audio['loadProgress'] = function(percent, duration) {
+        audio.loadedPercent = percent;
+        audio.duration = duration;
+        _loadStarted(audio);
+        _loadProgress(audio, [percent]);
+      };
+      audio['skipTo'] = function(percent) {
+        if (percent > audio.loadedPercent) return;
+        audio.updatePlayhead(audio, [percent])
+        audio.element[0].skipTo(percent);
+      };
+      audio['updatePlayhead'] = function(percent) {
+        _updatePlayhead(audio, [percent]);
+      };
+      audio['play'] = function() {
+        // If the audio hasn't started preloading, then start it now.  
+        // Then set `preload` to `true`, so that any tracks loaded in subsequently are loaded straight away.
+        if (!audio.settings.preload) {
+          audio.settings.preload = true;
+          audio.element[0].init(audio.mp3);
+        }
+        audio.playing = true;
+        // IE doesn't allow a method named `play()` to be exposed through `ExternalInterface`, so lets go with `pplay()`.  
+        // <http://dev.nuclearrooster.com/2008/07/27/externalinterfaceaddcallback-can-cause-ie-js-errors-with-certain-keyworkds/>
+        console.log(audio.element);
+        audio.element.pplay();
+        _play(audio);
+      };
+      audio['pause'] = function() {
+        audio.playing = false;
+        // Use `ppause()` for consistency with `pplay()`, even though it isn't really required.
+        audio.element[0].ppause();
+        _pause(audio);
+      };
+      audio['setVolume'] = function(v) {
+        audio.element[0].setVolume(v);
+      };
+      audio['loadStarted'] = function() {
+        // Load the mp3 specified by the audio element into the swf.
+        audio.swfReady = true;
+        if (audio.settings.preload) audio.element[0].init();
+        if (audio.settings.autoplay) audio.play();
+      };
     }, _flashError = function (audio) {
       var player       = audio.config.createPlayer,
           errorMessage = document.getElementsByClassName(player.errorMessageClass),
@@ -39,7 +87,7 @@
       audio.wrapper.toggleClass(player.errorClass);
       errorMessage.innerHTML = html;
     }, _attachEvents = function (wrapper, audio) {
-      if (useFlash) return;
+      //if (useFlash) return;
       if (!audio.config.createPlayer) return;
       var player    = audio.config.createPlayer,
           audioSrc  = angular.element(document.querySelector(_id)),
@@ -102,7 +150,7 @@
           m        = Math.floor(p / 60),
           s        = Math.floor(p % 60);
       playTime.html((m<10?'0':'')+m+':'+(s<10?'0':'')+s);
-      playProg.css('width', scrubber[0].offsetWidth*arr[0]+'px'); 
+      playProg.css('width', scrubber[0].offsetWidth*arr[0]+'px');
     }, _audio = function (element, s) { 
       this.element = element;
       this.wrapper = element.parent();
@@ -110,10 +158,10 @@
       this.settings = s.settings;
       this.config = s;
       //not working.
-      /*this.mp3 = (function(element) {
+      this.mp3 = (function(element) {
         var source = element.children('<source>')[0];
         return element.attr('src') || (source ? source.attr('src') : null);
-      })(element);*/
+      })(element);
       this.index = 0;
       this.loadStartedCalled = false;
       this.loadedPercent = 0;
@@ -128,11 +176,13 @@
         if (percent) {
           percent = percent;
         } else {
-          var arr   = this.settings.tags[_tag],
-              index = this.index,
+          var arr = this.settings.tags[_tag],
+              ele = this.element[0].currentTime,
+              arr = arr.sort(function(a,b){return a-b});
+          if (inst === 'n') { if (this.index < arr.length) this.index++; }
+          if (inst === 'p') { if (this.index > 0) this.index--; }
+          var index = this.index,
               point = arr[index]/1000;
-          if (inst === 'n') { this.index++; }
-          if (inst === 'p') { this.index--; }
           percent = point/this.duration;
         }
         _skipTo(this, percent);
@@ -175,7 +225,7 @@
       _audio.prototype.play = function() {
         var ios = (/(ipod|iphone|ipad)/i).test($window.navigator.userAgent);
         // On iOS this interaction will trigger loading the mp3, so run `init()`.
-        if (ios && this.element[0].readyState == 0) this.init(this);
+        if (ios && this.element[0].readyState == 0) this.init();
         // If the audio hasn't started preloading, then start it now.  
         // Then set `preload` to `true`, so that any tracks loaded in subsequently are loaded straight away.
         if (!this.settings.preload) {
@@ -216,10 +266,9 @@
       if (s.createPlayer.markup) element = _createPlayer(element, s.createPlayer);
       //include else case too
       var audio = new _audio(element, s);
-
       if (useFlash && hasFlash) {
         _injectFlash(audio);
-        _attachFlashEvents(audio.wrapper);
+        _attachFlashEvents(audio.wrapper, audio);
       } else if (useFlash && !hasFlash) {
         _flashError(audio);
       }
@@ -253,9 +302,10 @@
           tagHolder = angular.element(document.querySelector('.'+player.tagClass));
       tagHolder.children().remove();
       for (var i = 0; i < arr.length; i++) {
-        var place = (arr[i]/(audio.duration*1000))*280;
-        console.log(audio.duration, place, (arr[i]/(audio.duration*1000)));
-        tagHolder.append('<div class="tag" style="left:'+place+'px;"></div>');
+        if (arr[i]/1000 < audio.duration) {
+          var place = (arr[i]/(audio.duration*1000))*280;
+          tagHolder.append('<div class="audio-tag" style="left:'+place+'px;"></div>');
+        }
       }
     }, _id = null, _tag = null;
 
@@ -320,40 +370,40 @@
         </object>',
       createPlayer: {
         markup: '\
-          <div class="play-pause"> \
-            <p class="play"></p> \
-            <p class="pause"></p> \
-            <p class="loading"></p> \
-            <p class="error"></p> \
+          <div class="audio-play-pause"> \
+            <p class="audio-play"></p> \
+            <p class="audio-pause"></p> \
+            <p class="audio-loading"></p> \
+            <p class="audio-error"></p> \
           </div> \
-          <div class="scrubber"> \
-            <div class="progress"></div> \
-            <div class="loaded"></div> \
-            <div class="tags"></div> \
+          <div class="audio-scrubber"> \
+            <div class="audio-progress"></div> \
+            <div class="audio-loaded"></div> \
+            <div class="audio-tags"></div> \
           </div> \
-          <div class="nextBack"> \
-            <div class="prevInst"></div> \
-            <div class="nextInst"></div> \
+          <div class="audio-nextBack"> \
+            <div class="audio-prevInst"></div> \
+            <div class="audio-nextInst"></div> \
           </div> \
-          <div class="time"> \
-            <em class="played">00:00</em>/<strong class="duration">00:00</strong> \
+          <div class="audio-time"> \
+            <em class="audio-played">00:00</em>/<strong class="audio-duration">00:00</strong> \
           </div> \
-          <div class="error-message"></div>',
-        playPauseClass: 'play-pause',
-        nextBackClass: 'nextBack',
-        nextInstClass: 'nextInst',
-        prevInstClass: 'prevInst',
-        scrubberClass: 'scrubber',
-        progressClass: 'progress',
-        loaderClass: 'loaded',
-        timeClass: 'time',
-        durationClass: 'duration',
-        playedClass: 'played',
-        errorMessageClass: 'error-message',
-        playingClass: 'playing',
-        loadingClass: 'loading',
-        tagClass: 'tags',
-        errorClass: 'error'
+          <div class="audio-error-message"></div>',
+        playPauseClass: 'audio-play-pause',
+        nextBackClass: 'audio-nextBack',
+        nextInstClass: 'audio-nextInst',
+        prevInstClass: 'audio-prevInst',
+        scrubberClass: 'audio-scrubber',
+        progressClass: 'audio-progress',
+        loaderClass: 'audio-loaded',
+        timeClass: 'audio-time',
+        durationClass: 'audio-duration',
+        playedClass: 'audio-played',
+        errorMessageClass: 'audio-error-message',
+        playingClass: 'audio-playing',
+        loadingClass: 'audio-loading',
+        tagClass: 'audio-tags',
+        errorClass: 'audio-error'
       },
       settings : {
         autoplay: false,
