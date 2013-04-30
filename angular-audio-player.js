@@ -159,7 +159,7 @@
       this.config = s;
       //not working.
       this.mp3 = (function(element) {
-        var source = element.children('<source>')[0];
+        var source = element.children(document.querySelector('script'))[0];
         return element.attr('src') || (source ? source.attr('src') : null);
       })(element);
       this.index = 0;
