@@ -118,6 +118,11 @@
       prevInst.bind('click', function (e) {
         audio.skipTo(percent, 'p');
       });
+      scrubber.bind('click', function(e) {
+        var relativeLeft = e.clientX - leftPos(this);
+        console.log(e.clientX, scrubber[0].offsetWidth, leftPos(this));
+        audio.skipTo(relativeLeft / scrubber[0].offsetWidth, undefined);
+      });
       if (useFlash) return;
       _trackLoadProgress(audio);
     }, _skipTo = function (audio, percent) {
