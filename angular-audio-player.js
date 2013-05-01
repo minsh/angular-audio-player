@@ -6,7 +6,13 @@
       var a = document.createElement('audio');
       return !(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
     })(), hasFlash = false,
-    _createPlayer = function (element, player) {
+    _q = function (selector) {
+      if (typeof jQuery != 'undefined') {
+        return selector;
+      } else {
+        return document.querySelector(selector);
+      }
+    }, _createPlayer = function (element, player) {
       var newElem = element.clone(true),
           wrapper = element.after('<div>');
       wrapper.next().addClass('angular-player');
@@ -27,14 +33,14 @@
       // Inject the player markup using a more verbose `innerHTML` insertion technique that works with IE.
       audio.element.replaceWith(flashSource);
       audio.element = function() {
-        return angular.element(document.querySelector('#angular-audio-player'));
+        return angular.element(document.querySelector('embed'));
       }();
     }, _attachFlashEvents = function (wrapper, audio) {
       audio['swfReady'] = false;
       audio['load'] = function() {
         // If the swf isn't ready yet then just set `audio.mp3`. `init()` will load it in once the swf is ready.
         if (audio.swfReady) audio.element[0].load(audio.mp3);
-        console.log(audio.element[0]);
+        console.log('-----------', audio.element[0]);
       };
       audio['loadProgress'] = function(percent, duration) {
         audio.loadedPercent = percent;
@@ -42,7 +48,7 @@
         _loadStarted(audio);
         _loadProgress(audio, [percent]);
       };
-      audio['skipTo'] = function(percent) {
+      audio['skipTo'] = function(percent, val) {
         if (percent > audio.loadedPercent) return;
         audio.updatePlayhead(audio, [percent])
         audio.element[0].skipTo(percent);
@@ -51,6 +57,7 @@
         _updatePlayhead(audio, [percent]);
       };
       audio['play'] = function() {
+        console.log(audio.mp3);
         // If the audio hasn't started preloading, then start it now.  
         // Then set `preload` to `true`, so that any tracks loaded in subsequently are loaded straight away.
         if (!audio.settings.preload) {
@@ -61,7 +68,7 @@
         // IE doesn't allow a method named `play()` to be exposed through `ExternalInterface`, so lets go with `pplay()`.  
         // <http://dev.nuclearrooster.com/2008/07/27/externalinterfaceaddcallback-can-cause-ie-js-errors-with-certain-keyworkds/>
         console.log(audio.element);
-        audio.element.pplay();
+        audio.element[0].pplay();
         _play(audio);
       };
       audio['pause'] = function() {
@@ -74,9 +81,10 @@
         audio.element[0].setVolume(v);
       };
       audio['loadStarted'] = function() {
+        console.log('------------', audio.mp3);
         // Load the mp3 specified by the audio element into the swf.
         audio.swfReady = true;
-        if (audio.settings.preload) audio.element[0].init();
+        if (audio.settings.preload) audio.element[0].init(audio.mp3);
         if (audio.settings.autoplay) audio.play();
       };
     }, _flashError = function (audio) {
@@ -87,7 +95,6 @@
       audio.wrapper.toggleClass(player.errorClass);
       errorMessage.innerHTML = html;
     }, _attachEvents = function (wrapper, audio) {
-      //if (useFlash) return;
       if (!audio.config.createPlayer) return;
       var player    = audio.config.createPlayer,
           audioSrc  = angular.element(document.querySelector(_id)),
@@ -110,7 +117,8 @@
       });
       prevInst.bind('click', function (e) {
         audio.skipTo(percent, 'p');
-      }); 
+      });
+      if (useFlash) return;
       _trackLoadProgress(audio);
     }, _skipTo = function (audio, percent) {
       if (percent > audio.loadedPercent) return;
@@ -364,9 +372,9 @@
     return { 
       flashPlayer : '\
         <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" id="$1" width="1" height="1" name="$1" style="position: absolute; left: -1px;"> \
-          <param name="movie" value="$2?playerInstance=ngplayer.instances[\'$1\']&datetime=$3"> \
+          <param name="movie" value="$2?playerInstance=player&datetime=$3"> \
           <param name="allowscriptaccess" value="always"> \
-          <embed name="$1" src="$2?playerInstance=ngplayer.instances[\'$1\']&datetime=$3" width="1" height="1" allowscriptaccess="always"> \
+          <embed name="$1" src="$2?playerInstance=player&datetime=$3" width="1" height="1" allowscriptaccess="always"> \
         </object>',
       createPlayer: {
         markup: '\
