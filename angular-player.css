@@ -18,13 +18,14 @@
 .angular-player .audio-pause { background: url("player-graphics.gif") -2px -91px no-repeat; }
 .angular-player .audio-nextInst { position: relative; float: left; background: url("f.png") no-repeat; width: 15px; height: 15px; margin-top: 6px; margin-left: 8px; cursor: pointer;} 
 .angular-player .audio-prevInst { position: relative; float: left; background: url("b.png") no-repeat; width: 15px; height: 15px; margin-top: 6px; margin-left: 8px; cursor: pointer;} 
-.audio-playing .audio-play, .audio-playing .audio-loading, .audio-playing .audio-error, .audio-loading .audio-nextInst, .audio-loading .audio-prevInst { display: none; } 
-.audio-playing .audio-pause .audio-nextInst .audio-prevInst { display: block; } 
+.audio-playing .audio-play, .audio-playing .audio-loading, .audio-playing .audio-error { display: none; }
+.audio-loading .audio-nextInst, .audio-loading .audio-prevInst { display: none; }
+.audio-playing .audio-pause, .audio-playing .audio-prevInst, .audio-playing .audio-nextInst { display: block; } 
 .audio-loading .audio-play, .audio-loading .audio-pause, .audio-loading .audio-error { display: none; } 
 .audio-loading .audio-loading { display: block; } 
 .audio-error .audio-time, .audio-error .audio-play, .audio-error .audio-pause, .audio-error .audio-scrubber, .audio-error .audio-loading, .audio-error .audio-nextInst, .audio-error .audio-prevInst { display: none; } 
 .audio-error .audio-error { display: block; } 
 .audio-error .audio-play-pause p { cursor: auto; } 
 .audio-error .audio-error-message { display: block; }
-.audio-tags {position: absolute; width: 0px; height: 14px; z-index: 2;}
-.audio-tag {position: absolute; border-left: 1px solid #388fc9; border-right: 1px solid #388fc9; width: 0px; height: 14px;}
+.angular-player .audio-tags {position: absolute; width: 0px; height: 14px; z-index: 2;}
+.angular-player .audio-tag {position: absolute; border-left: 1px solid #388fc9; border-right: 1px solid #388fc9; width: 0px; height: 14px;}
