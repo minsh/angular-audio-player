@@ -1,28 +1,60 @@
 (function(window, angular, undefined) {
   'use strict';
   angular.module('ngAudioPlayer', ['ng']).
-  factory('$player', ['$browser', '$window', 'playerConfig', function($browser, $window, playerConfig) {
-   var useFlash = (function () {
-      var a = document.createElement('audio');
-      return !(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
-    })(), hasFlash = false,
-    _q = function (selector) {
+  factory('$player', ['$window', 'playerConfig', function($window, playerConfig) {
+    var _q = function (selector) {
       if (typeof jQuery != 'undefined') {
         return selector;
+      } else if (document.querySelector) {
+        return document.querySelectorAll(selector);
       } else {
-        return document.querySelector(selector);
+        //TODO Make a selector function for cases when both jquery and querySelector are not their.
       }
-    }, _createPlayer = function (element, player) {
+    }, _path = (function () {
+      var re      = new RegExp('angular-audio-player(\.min)?\.js.*'),
+          scripts = angular.element(_q('script'));
+      for (var i = 0, ii = scripts.length; i < ii; i++) {
+        var path = scripts[i].getAttribute('src'); 
+        if(re.test(path)) return path.replace(re, '');
+      }
+    })(), _settings = function () {
+      return {
+        autoplay: false,
+        loop: false,
+        preload: true,
+        swfLocation: _path + 'angular-audio.swf'
+      };
+    }, _useFlash = (function () {
+      var a = document.createElement('audio');
+      return !(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
+    })(), _hasFlash = (function () {
+      if(_useFlash) {
+        if ($window.navigator.plugins && $window.navigator.plugins.length && $window.navigator.plugins['Shockwave Flash']) {
+          return true;
+        } else if ($window.navigator.mimeTypes && $window.navigator.mimeTypes.length) {
+          var mimeType = $window.navigator.mimeTypes['application/x-shockwave-flash'];
+          return mimeType && mimeType.enabledPlugin;
+        } else {
+          try {
+            var ax = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
+            return true;
+          } catch (e) {}
+        }
+        return false;
+      } else {
+        return false;
+      }
+    })(), _createPlayer = function (element, player) {
       var newElem = element.clone(true),
           wrapper = element.after('<div>');
       wrapper.next().addClass('angular-player');
       wrapper.next().attr('className', 'angular-player');
       wrapper.next().attr('id', 'angularPlayer');
-      //TODO: check if works on ie
+      //TODO check if works on ie
       wrapper.next().append(newElem);
       wrapper.next().append(player.markup);
       wrapper.remove();
-      wrapper = angular.element(document.querySelector(_id));
+      wrapper = angular.element(_q(_id));
       return wrapper;
     }, _injectFlash = function (audio) {
       var player      = audio.config.flashPlayer,
@@ -33,14 +65,13 @@
       // Inject the player markup using a more verbose `innerHTML` insertion technique that works with IE.
       audio.element.replaceWith(flashSource);
       audio.element = function() {
-        return angular.element(document.querySelector('embed'));
+        return angular.element(_q('embed'));
       }();
     }, _attachFlashEvents = function (wrapper, audio) {
       audio['swfReady'] = false;
       audio['load'] = function() {
         // If the swf isn't ready yet then just set `audio.mp3`. `init()` will load it in once the swf is ready.
         if (audio.swfReady) audio.element[0].load(audio.mp3);
-        console.log('-----------', audio.element[0]);
       };
       audio['loadProgress'] = function(percent, duration) {
         audio.loadedPercent = percent;
@@ -57,7 +88,6 @@
         _updatePlayhead(audio, [percent]);
       };
       audio['play'] = function() {
-        console.log(audio.mp3);
         // If the audio hasn't started preloading, then start it now.  
         // Then set `preload` to `true`, so that any tracks loaded in subsequently are loaded straight away.
         if (!audio.settings.preload) {
@@ -67,7 +97,6 @@
         audio.playing = true;
         // IE doesn't allow a method named `play()` to be exposed through `ExternalInterface`, so lets go with `pplay()`.  
         // <http://dev.nuclearrooster.com/2008/07/27/externalinterfaceaddcallback-can-cause-ie-js-errors-with-certain-keyworkds/>
-        console.log(audio.element);
         audio.element[0].pplay();
         _play(audio);
       };
@@ -81,7 +110,6 @@
         audio.element[0].setVolume(v);
       };
       audio['loadStarted'] = function() {
-        console.log('------------', audio.mp3);
         // Load the mp3 specified by the audio element into the swf.
         audio.swfReady = true;
         if (audio.settings.preload) audio.element[0].init(audio.mp3);
@@ -97,11 +125,11 @@
     }, _attachEvents = function (wrapper, audio) {
       if (!audio.config.createPlayer) return;
       var player    = audio.config.createPlayer,
-          audioSrc  = angular.element(document.querySelector(_id)),
-          playPause = angular.element(document.querySelector('.'+player.playPauseClass)),
-          nextInst  = angular.element(document.querySelector('.'+player.nextInstClass)),
-          prevInst  = angular.element(document.querySelector('.'+player.prevInstClass)),
-          scrubber  = angular.element(document.querySelector('.'+player.scrubberClass)),
+          audioSrc  = angular.element(_q(_id)),
+          playPause = angular.element(_q('.'+player.playPauseClass)),
+          nextInst  = angular.element(_q('.'+player.nextInstClass)),
+          prevInst  = angular.element(_q('.'+player.prevInstClass)),
+          scrubber  = angular.element(_q('.'+player.scrubberClass)),
           leftPos   = function (elem) {
             var curleft = 0; 
             if (elem.offsetParent) {
@@ -123,7 +151,7 @@
         console.log(e.clientX, scrubber[0].offsetWidth, leftPos(this));
         audio.skipTo(relativeLeft / scrubber[0].offsetWidth, undefined);
       });
-      if (useFlash) return;
+      if (_useFlash) return;
       _trackLoadProgress(audio);
     }, _skipTo = function (audio, percent) {
       if (percent > audio.loadedPercent) return;
@@ -156,9 +184,9 @@
       audio.loadTimer = loadTimer;
     }, _updatePlayhead = function(audio, arr) {
       var player   = audio.config.createPlayer,
-          playProg = angular.element(document.querySelector('.'+player.progressClass)),
-          scrubber = angular.element(document.querySelector('.'+player.scrubberClass)),
-          playTime = angular.element(document.querySelector('.'+player.playedClass)),
+          playProg = angular.element(_q('.'+player.progressClass)),
+          scrubber = angular.element(_q('.'+player.scrubberClass)),
+          playTime = angular.element(_q('.'+player.playedClass)),
           p        = audio.duration * arr[0],
           m        = Math.floor(p / 60),
           s        = Math.floor(p % 60);
@@ -172,10 +200,10 @@
       this.config = s;
       //not working.
       this.mp3 = (function(element) {
-        var source = element.children(document.querySelector('script'))[0];
+        var source = element.children(_q('script'))[0];
         return element.attr('src') || (source ? source.attr('src') : null);
       })(element);
-      this.index = 0;
+      this.index = -1;
       this.loadStartedCalled = false;
       this.loadedPercent = 0;
       this.duration = 1;
@@ -192,7 +220,7 @@
           var arr = this.settings.tags[_tag],
               ele = this.element[0].currentTime,
               arr = arr.sort(function(a,b){return a-b});
-          if (inst === 'n') { if (this.index < arr.length) this.index++; }
+          if (inst === 'n') { if (this.index < arr.length-1) this.index++; }
           if (inst === 'p') { if (this.index > 0) this.index--; }
           var index = this.index,
               point = arr[index]/1000;
@@ -267,40 +295,42 @@
     }, _loadError = function (audio) {
 
     }, _newPlayer = function(element, options) {
-      var s = playerConfig;
-      if (element.attr('autoplay') != null) s.settings.autoplay = true;
-      if (element.attr('loop') != null) s.settings.loop = true;
-      if (element.attr('preload') == 'none') s.settings.preload = false;
+      var s        = playerConfig,
+          settings = _settings();
+      if (element.attr('autoplay') != null) settings.autoplay = true;
+      if (element.attr('loop') != null) settings.loop = true;
+      if (element.attr('preload') == 'none') settings.preload = false;
       if (options) {
         angular.forEach(options, function(v, k) {
-          s.settings[k] = v;
+          settings[k] = v;
         });
       }
+      s.settings = settings;
       if (s.createPlayer.markup) element = _createPlayer(element, s.createPlayer);
       //include else case too
       var audio = new _audio(element, s);
-      if (useFlash && hasFlash) {
+      if (_useFlash && _hasFlash) {
         _injectFlash(audio);
         _attachFlashEvents(audio.wrapper, audio);
-      } else if (useFlash && !hasFlash) {
+      } else if (_useFlash && !_hasFlash) {
         _flashError(audio);
       }
-      if (!useFlash || (useFlash && hasFlash)) _attachEvents(audio.wrapper, audio);
+      if (!_useFlash || (_useFlash && _hasFlash)) _attachEvents(audio.wrapper, audio);
       return audio;
     }, _init = function (audio) {
       var player = audio.config.createPlayer;
       audio.wrapper.addClass(player.loadingClass);
     }, _loadStarted = function (audio) {
       var player   = audio.config.createPlayer,
-          duration = angular.element(document.querySelector('.'+player.durationClass)),
+          duration = angular.element(_q('.'+player.durationClass)),
           m        = Math.floor(audio.duration / 60),
           s        = Math.floor(audio.duration % 60);
       audio.wrapper.removeClass(player.loadingClass);
       duration.html(((m<10?'0':'')+m+':'+(s<10?'0':'')+s)); 
     }, _loadProgress = function (audio, arr) {
       var player   = audio.config.createPlayer,
-          scrubber = angular.element(document.querySelector('.'+player.scrubberClass)),
-          loaded   = angular.element(document.querySelector('.'+player.loaderClass));
+          scrubber = angular.element(('.'+player.scrubberClass)),
+          loaded   = angular.element(_q('.'+player.loaderClass));
       loaded.css('width', scrubber[0].offsetWidth*arr[0]+'px');
     }, _playPause = function () {
     }, _pause = function (audio) {
@@ -312,40 +342,25 @@
     }, _setTags = function(audio) { 
       var arr       = audio.settings.tags[_tag],
           player    = audio.config.createPlayer,
-          tagHolder = angular.element(document.querySelector('.'+player.tagClass));
+          scrubber  = angular.element(_q('.'+player.scrubberClass)),
+          tagHolder = angular.element(_q('.'+player.tagClass));
       tagHolder.children().remove();
       for (var i = 0; i < arr.length; i++) {
         if (arr[i]/1000 < audio.duration) {
-          var place = (arr[i]/(audio.duration*1000))*280;
+          var place = (arr[i]/(audio.duration*1000))*scrubber[0].offsetWidth;
           tagHolder.append('<div class="audio-tag" style="left:'+place+'px;"></div>');
         }
       }
     }, _id = null, _tag = null;
 
-    if(useFlash) {
-      hasFlash = (function() {
-        if ($window.navigator.plugins && $window.navigator.plugins.length && $window.navigator.plugins['Shockwave Flash']) {
-          return true;
-        } else if ($window.navigator.mimeTypes && $window.navigator.mimeTypes.length) {
-          var mimeType = $window.navigator.mimeTypes['application/x-shockwave-flash'];
-          return mimeType && mimeType.enabledPlugin;
-        } else {
-          try {
-            var ax = new ActiveXObject('ShockwaveFlash.ShockwaveFlash');
-            return true;
-          } catch (e) {}
-        }
-        return false;
-      })();
-    }
-
     return {
       create : function(id, options) {
-        var query   = document.querySelector(id),
-            element = angular.element(query),
+        var element = angular.element(_q(id)),
             options = options || null;
-            _id = id;
-        return _newPlayer(element, options);
+        _id = id;
+        var player = _newPlayer(element, options);
+        $window.player = player;
+        return player;
       },
       setTag : function (tag, audio) {
         _tag = tag;
@@ -365,15 +380,6 @@
     };
   }]).
   factory('playerConfig', [function() {
-    var _path = (function() {
-      var re      = new RegExp('angular-audio-player(\.min)?\.js.*'),
-          query   = document.querySelectorAll('script'),
-          scripts = angular.element(query);
-      for (var i = 0, ii = scripts.length; i < ii; i++) {
-        var path = scripts[i].getAttribute('src'); 
-        if(re.test(path)) return path.replace(re, '');
-      }
-    })();
     return { 
       flashPlayer : '\
         <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" id="$1" width="1" height="1" name="$1" style="position: absolute; left: -1px;"> \
@@ -417,13 +423,6 @@
         loadingClass: 'audio-loading',
         tagClass: 'audio-tags',
         errorClass: 'audio-error'
-      },
-      settings : {
-        autoplay: false,
-        loop: false,
-        preload: true,
-        imageLocation: _path + 'player-graphics.gif',
-        swfLocation: _path + 'angular-audio.swf'
       }
     };
   }])
