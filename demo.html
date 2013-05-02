@@ -30,6 +30,7 @@
       {{text}}
       <div>
         <audio id="audioTag" src="http://ameru.eecafe.net/music/Cowboy_Bebop_-_Space_Lion.mp3"></audio>
+        <!--<audio id="audioTag2" src="http://www.hulkshare.com/dl/fvvkt7vpu1z3/17_-_the_real_folk_blues.mp3"></audio>-->
         <button ng-click="tag('e')">Change to e</button>
       </div>
     </div>
@@ -37,9 +38,8 @@
     <script src="angular-audio-player.js"></script>
     <!-- Google Analytics: change UA-XXXXX-X to be your site's ID. -->
     <script>
-      angular.module('angularAudio', ['ngAudioPlayer']).controller('audioCtrl', ['$scope', '$player', function($scope, $player){
-        player = $player.create('#audioTag', {tags:{d:[1000, 2000, 3000, 4000], f:[5000, 11000, 20000, 30000, 40000, 90000], e:[90000, 180000, 270000, 360000, 450000, 540000, 80000]}});
-        $scope.player= player;
+      angular.module('angularAudio', ['ngAudioPlayer']).controller('audioCtrl', ['$scope', '$player', '$window', function($scope, $player, $window){
+        var player = $player.create('#audioTag', {tags:{d:[1000, 2000, 3000, 4000], f:[5000, 11000, 20000, 30000, 40000, 90000], e:[90000, 180000, 270000, 360000, 450000, 540000, 80000]}});
         $scope.tag = function (g) {
           $player.setTag(g, player);
           console.log('changed');
