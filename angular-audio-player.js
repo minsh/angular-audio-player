@@ -197,10 +197,10 @@
             if (audio.settings.autoplay) audio.play(audio);
             // Once we have data, start tracking the load progress.
             loadTimer = function () {
-              setInterval( function() {
+              setTimeout( function() {
                   audio.loadProgress();
                   if (audio.loadedPercent < 1) loadTimer();
-              });
+              }, 10);
             };
             loadTimer();
           } else {
