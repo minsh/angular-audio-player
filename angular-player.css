@@ -1,9 +1,9 @@
 .angular-player audio { position: absolute; left: -1px; }
-.angular-player { width: 510px; height: 36px; background: #404040; overflow: hidden; font-family: monospace; font-size: 12px; background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #444), color-stop(0.5, #555), color-stop(0.51, #444), color-stop(1, #444)); background-image: -moz-linear-gradient(center top, #444 0%, #555 50%, #444 51%, #444 100%); -webkit-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); -moz-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); -o-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); } 
+.angular-player { width: 600px; height: 36px; background: #404040; overflow: hidden; font-family: monospace; font-size: 12px; background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #444), color-stop(0.5, #555), color-stop(0.51, #444), color-stop(1, #444)); background-image: -moz-linear-gradient(center top, #444 0%, #555 50%, #444 51%, #444 100%); -webkit-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); -moz-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); -o-box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); box-shadow: 1px 1px 8px rgba(0, 0, 0, 0.3); } 
 .angular-player .audio-play-pause { width: 25px; height: 40px; padding: 4px 6px; margin: 0px; float: left; overflow: hidden; border-right: 1px solid #000; }
 .angular-player p { display: none; width: 25px; height: 40px; margin: 0px; cursor: pointer; } 
 .angular-player .audio-play { display: block; } 
-.angular-player .audio-nextBack { position: relative; float: left; width: 50px; height: 40px; padding: 4px 6px; margin: 0px;  overflow: hidden; border-left: 1px solid #000;} 
+.angular-player .audio-nextBack { position: relative; float: left; width: 50px; height: 36px; padding: 4px 6px; margin: 0px;  overflow: hidden; border-left: 1px solid #000;} 
 .angular-player .audio-scrubber { position: relative; float: left; width: 280px; background: #5a5a5a; height: 14px; margin: 10px; border-top: 1px solid #3f3f3f; border-left: 0px; border-bottom: 0px; overflow: hidden;} 
 .angular-player .audio-progress { position: absolute; top: 0px; left: 0px; height: 14px; width: 0px; background: #ccc; z-index: 1; background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #ccc), color-stop(0.5, #ddd), color-stop(0.51, #ccc), color-stop(1, #ccc)); background-image: -moz-linear-gradient(center top, #ccc 0%, #ddd 50%, #ccc 51%, #ccc 100%); } 
 .angular-player .audio-loaded { position: absolute; top: 0px; left: 0px; height: 14px; width: 0px; background: #000; background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #222), color-stop(0.5, #333), color-stop(0.51, #222), color-stop(1, #222)); background-image: -moz-linear-gradient(center top, #222 0%, #333 50%, #222 51%, #222 100%); } 
@@ -29,3 +29,10 @@
 .audio-error .audio-error-message { display: block; }
 .angular-player .audio-tags {position: absolute; width: 0px; height: 14px; z-index: 2;}
 .angular-player .audio-tag {position: absolute; border-left: 1px solid #388fc9; border-right: 1px solid #388fc9; width: 0px; height: 14px;}
+.angular-player .audio-volume { position: relative; float: left; width: 70px; height: 36px; padding: 4px 6px; margin: 0px;  overflow: hidden; border-left: 1px solid #000; }
+.angular-player .audio-speaker { position: relative; float: left; width: 15px; height: 36px; margin-top: 6px;  overflow: hidden; cursor: pointer; }
+.angular-player .audio-speaker-ion { background: url("von.png") no-repeat; }
+.angular-player .audio-speaker-iof { background: url("vof.png") no-repeat; }
+.angular-player .audio-volume-holder {position: relative; float: left; width: 50px; height: 9px; background: #ECF0F1; margin-top: 9px; left: 2px; }
+.angular-player .audio-value {position: relative; float: left; width: 48px; height: 7px; background: #bbb; margin-top: 1px; left: 1px; }
+.angular-player .audio-none {visibility: hidden;}
