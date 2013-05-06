@@ -79,10 +79,29 @@
         _loadStarted(audio);
         _loadProgress(audio, [percent]);
       };
-      audio['skipTo'] = function(percent, val) {
-        if (percent > audio.loadedPercent) return;
-        audio.updatePlayhead(audio, [percent])
+      audio['skipTo'] = function(percent, inst) {
+        var player    = this.config.createPlayer,
+            nextInst  = angular.element(_q('.'+player.nextInstClass)),
+            prevInst  = angular.element(_q('.'+player.prevInstClass));
+        if (percent && !inst) {
+          percent = percent;
+        } else {
+          var arr = this.settings.tags[_tag],
+              ele = this.element[0].currentTime,
+              arr = arr.sort(function(a,b){return a-b});
+          if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index++; }
+          if (inst === 'p') { if (this.index > 0) this.index--; }
+          var index = this.index,
+              point = arr[index]/1000;
+          percent = point/this.duration;
+          if (this.index === 0) prevInst.addClass('audio-none');
+          else prevInst.removeClass('audio-none');
+          if (this.index === arr.length-1) nextInst.addClass('audio-none');
+          else nextInst.removeClass('audio-none');
+        }
         audio.element[0].skipTo(percent);
+        console.log(percent);
+        audio.updatePlayhead(percent);
       };
       audio['updatePlayhead'] = function(percent) {
         _updatePlayhead(audio, [percent]);
@@ -107,6 +126,7 @@
         _pause(audio);
       };
       audio['setVolume'] = function(v) {
+        console.log('hi');
         audio.element[0].setVolume(v);
       };
       audio['loadStarted'] = function() {
@@ -132,8 +152,10 @@
           scrubber  = angular.element(_q('.'+player.scrubberClass)),
           speaker   = angular.element(_q('.'+player.speakerClass)),
           volSlider = angular.element(_q('.'+player.speakerScrubber)),
+          volClicks = angular.element(_q('.'+player.volumeClickClass)),
           volValue  = angular.element(_q('.'+player.volumeClass)),
-          percent   = null;
+          percent   = null,
+          mousedwn  = false;
       playPause.bind('click', function (e) {
         audio.playPause();
       });
@@ -143,10 +165,28 @@
       prevInst.bind('click', function (e) {
         audio.skipTo(percent, 'p');
       });
-      volSlider.bind('click', function (e) {
-        volValue.css('width', e.offsetX);
-        audio.setVolume(e.offsetX/volSlider[0].offsetWidth);
-        audio.volume = e.offsetX/volSlider[0].offsetWidth;
+      volClicks.bind('mousedown', function (e) {
+        mousedwn = true;
+      });
+      volClicks.bind('click', function (e) { 
+        var val = e.offsetX ? e.offsetX : e.originalEvent.layerX; 
+        volValue.css('width', val);
+        audio.setVolume(val/volSlider[0].offsetWidth);
+        audio.volume = val/volSlider[0].offsetWidth;
+      });
+      volClicks.bind('mouseup', function(e) {
+        mousedwn = false;
+      }); 
+      volClicks.bind('mouseout', function(e) {
+        mousedwn = false;
+      }); 
+      volClicks.bind('mousemove', function(e) {
+        if (mousedwn) { 
+          var val = e.offsetX ? e.offsetX : e.originalEvent.layerX; 
+          volValue.css('width', val);
+          audio.setVolume(val/volSlider[0].offsetWidth);
+          audio.volume = val/volSlider[0].offsetWidth;
+        }
       });
       audio.element.bind('ended', function (e) {
         audio.trackEnded(e);
@@ -170,7 +210,7 @@
         audio.updatePlayhead();
       });
       scrubber.bind('click', function(e) {
-        var relativeLeft = e.offsetX;
+        var relativeLeft = e.offsetX ? e.offsetX : e.originalEvent.layerX;
         audio.skipTo(relativeLeft / scrubber[0].offsetWidth, undefined);
       });
       if (_useFlash) return;
@@ -403,12 +443,16 @@
       },
       setTag : function (tag, audio) {
         _tag = tag;
-        var interval = setInterval(function() {  
-          if (audio.duration > 1) {
-            _setTags(audio);
-            clearInterval(interval);
-          }
-        }, 10);
+        var tagInterval = function() {
+          setTimeout(function() {  
+            if (audio.duration > 1 && audio.loadedPercent === 1) {
+              _setTags(audio);
+            } else {
+              tagInterval();
+            }
+          }, 10);
+        };
+        tagInterval();
       },
       trackEnd : function () {
       
@@ -448,6 +492,7 @@
             <div class="audio-volume-holder"> \
               <div class="audio-value"></div> \
             </div> \
+            <div class="audio-clickdetect"></div> \
           </div> \
           <div class="audio-time"> \
             <em class="audio-played">00:00</em>/<strong class="audio-duration">00:00</strong> \
@@ -472,7 +517,8 @@
         speakerOnClass: 'audio-speaker-ion',
         speakerOfClass: 'audio-speaker-iof',
         speakerScrubber: 'audio-volume-holder',
-        volumeClass: 'audio-value'
+        volumeClass: 'audio-value',
+        volumeClickClass: 'audio-clickdetect'
       }
     };
   }])

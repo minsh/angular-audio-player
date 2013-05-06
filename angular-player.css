@@ -30,6 +30,7 @@
 .angular-player .audio-tags {position: absolute; width: 0px; height: 14px; z-index: 2;}
 .angular-player .audio-tag {position: absolute; border-left: 1px solid #388fc9; border-right: 1px solid #388fc9; width: 0px; height: 14px;}
 .angular-player .audio-volume { position: relative; float: left; width: 70px; height: 36px; padding: 4px 6px; margin: 0px;  overflow: hidden; border-left: 1px solid #000; }
+.angular-player .audio-clickdetect {position: absolute; left: 23px; top: 0px; width: 50px; height: 36px;}
 .angular-player .audio-speaker { position: relative; float: left; width: 15px; height: 36px; margin-top: 6px;  overflow: hidden; cursor: pointer; }
 .angular-player .audio-speaker-ion { background: url("von.png") no-repeat; }
 .angular-player .audio-speaker-iof { background: url("vof.png") no-repeat; }
