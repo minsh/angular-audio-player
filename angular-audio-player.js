@@ -51,6 +51,7 @@
       wrapper.next().attr('className', 'angular-player');
       wrapper.next().attr('id', 'angularPlayer');
       //TODO check if works on ie
+      newElem.attr('src', _url);
       wrapper.next().append(newElem);
       wrapper.next().append(player.markup);
       wrapper.remove();
@@ -126,7 +127,6 @@
         _pause(audio);
       };
       audio['setVolume'] = function(v) {
-        console.log('hi');
         audio.element[0].setVolume(v);
       };
       audio['loadStarted'] = function() {
@@ -269,6 +269,7 @@
       this.config = s;
       this.vol = true;
       this.volume = 1;
+      //this.mp3 = _url;
       //not working.
       this.mp3 = (function(element) {
         var source = element.children(_q('script'))[0];
@@ -430,13 +431,14 @@
           tagHolder.append('<div class="audio-tag" style="left:'+place+'px;"></div>');
         }
       }
-    }, _id = null, _tag = null;
+    }, _id = null, _tag = null, _url = null, _duration = null;
 
     return {
       create : function(id, options) {
         var element = angular.element(_q(id)),
             options = options || null;
         _id = id;
+        _url = options.url;
         var player = _newPlayer(element, options);
         $window.player = player;
         return player;
