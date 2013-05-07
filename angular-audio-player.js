@@ -216,7 +216,6 @@
       if (_useFlash) return;
       _trackLoadProgress(audio);
     }, _skipTo = function (audio, percent) {
-      if (percent > audio.loadedPercent) return;
       audio.element[0].currentTime = audio.duration * percent;
       audio.updatePlayhead();
     }, _trackLoadProgress = function(audio) {
@@ -447,7 +446,7 @@
         _tag = tag;
         var tagInterval = function() {
           setTimeout(function() {  
-            if (audio.duration > 1 && audio.loadedPercent === 1) {
+            if (audio.duration > 1) {
               _setTags(audio);
             } else {
               tagInterval();
