@@ -1,7 +1,7 @@
 (function(window, angular, undefined) {
   'use strict';
   angular.module('ngAudioPlayer', ['ng']).
-  factory('$player', ['$window', 'playerConfig', function($window, playerConfig) {
+  factory('$player', ['$window', function($window) {
     var _q = function (selector) {
       if (typeof jQuery != 'undefined') {
         return selector;
@@ -23,6 +23,66 @@
         loop: false,
         preload: true,
         swfLocation: _path + 'angular-audio.swf'
+      };
+    }, _flashPlayer = function () {
+      return {
+        flashPlayer : '\
+          <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" id="$1" width="1" height="1" name="$1" style="position: absolute; left: -1px;"> \
+            <param name="movie" value="$2?playerInstance=player&datetime=$3"> \
+            <param name="allowscriptaccess" value="always"> \
+            <embed name="$1" src="$2?playerInstance=player&datetime=$3" width="1" height="1" allowscriptaccess="always"> \
+          </object>'
+      };
+    }, _playerMarkup = function () {
+      return {
+        markup: '\
+          <div class="audio-play-pause"> \
+            <p class="audio-play"></p> \
+            <p class="audio-pause"></p> \
+            <p class="audio-loading"></p> \
+            <p class="audio-error"></p> \
+          </div> \
+          <div class="audio-scrubber"> \
+            <div class="audio-progress"></div> \
+            <div class="audio-loaded"></div> \
+            <div class="audio-tags"></div> \
+          </div> \
+          <div class="audio-nextBack"> \
+            <div class="audio-prevInst audio-none"></div> \
+            <div class="audio-nextInst audio-none"></div> \
+          </div> \
+          <div class="audio-volume"> \
+            <div class="audio-speaker audio-speaker-ion"></div> \
+            <div class="audio-volume-holder"> \
+              <div class="audio-value"></div> \
+            </div> \
+            <div class="audio-clickdetect"></div> \
+          </div> \
+          <div class="audio-time"> \
+            <em class="audio-played">00:00</em>/<strong class="audio-duration">00:00</strong> \
+          </div> \
+          <div class="audio-error-message"></div>',
+        playPauseClass: 'audio-play-pause',
+        nextBackClass: 'audio-nextBack',
+        nextInstClass: 'audio-nextInst',
+        prevInstClass: 'audio-prevInst',
+        scrubberClass: 'audio-scrubber',
+        progressClass: 'audio-progress',
+        loaderClass: 'audio-loaded',
+        timeClass: 'audio-time',
+        durationClass: 'audio-duration',
+        playedClass: 'audio-played',
+        errorMessageClass: 'audio-error-message',
+        playingClass: 'audio-playing',
+        loadingClass: 'audio-loading',
+        tagClass: 'audio-tags',
+        errorClass: 'audio-error',
+        speakerClass: 'audio-speaker',
+        speakerOnClass: 'audio-speaker-ion',
+        speakerOfClass: 'audio-speaker-iof',
+        speakerScrubber: 'audio-volume-holder',
+        volumeClass: 'audio-value',
+        volumeClickClass: 'audio-clickdetect'
       };
     }, _useFlash = (function () {
       var a = document.createElement('audio');
@@ -81,30 +141,49 @@
         _loadProgress(audio, [percent]);
       };
       audio['skipTo'] = function(percent, inst) {
-        var player    = this.config.createPlayer,
+        var player    = audio.config.createPlayer,
             nextInst  = angular.element(_q('.'+player.nextInstClass)),
             prevInst  = angular.element(_q('.'+player.prevInstClass));
         if (percent && !inst) {
           percent = percent;
         } else {
           var arr = _tag,
-              ele = this.element[0].currentTime,
+              ele = (audio.playedPercent*audio.duration*1000),
               arr = arr.sort(function(a,b){return a-b});
-          if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index++; }
-          if (inst === 'p') { if (this.index > 0) this.index--; }
-          var index = this.index,
+          for (var i = 0; i < arr.length; i++) {
+            if (ele < arr[0]) {
+              if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i; }
+              break;
+            }
+            if (ele > arr[arr.length-1]) {
+              if (inst === 'p') { if (audio.index > 0) audio.index = arr.length-1; }
+              break;
+            }
+            if (ele > arr[i])
+              if (ele < arr[i+1]) {
+                if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i+1; }
+                if (inst === 'p') { if (audio.index > 0) audio.index = i; }
+                break;
+              }
+            if (ele === arr[i]) {
+              if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i+1; }
+              if (inst === 'p') { if (audio.index > 0) audio.index = i-1; }
+              break;
+            }
+          }
+          var index = audio.index,
               point = arr[index]/1000;
-          percent = point/this.duration;
-          if (this.index === 0) prevInst.addClass('audio-none');
+          percent = point/audio.duration;
+          if (audio.index === 0) prevInst.addClass('audio-none');
           else prevInst.removeClass('audio-none');
-          if (this.index === arr.length-1) nextInst.addClass('audio-none');
+          if (audio.index === arr.length-1) nextInst.addClass('audio-none');
           else nextInst.removeClass('audio-none');
         }
         audio.element[0].skipTo(percent);
-        console.log(percent);
         audio.updatePlayhead(percent);
       };
       audio['updatePlayhead'] = function(percent) {
+        audio.playedPercent = percent;
         _updatePlayhead(audio, [percent]);
       };
       audio['play'] = function() {
@@ -291,11 +370,40 @@
         if (percent) {
           percent = percent;
         } else {
-          var arr = _tag,
-              ele = this.element[0].currentTime,
-              arr = arr.sort(function(a,b){return a-b});
-          if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index++; }
-          if (inst === 'p') { if (this.index > 0) this.index--; }
+          var arr        = _tag,
+              ele        = this.element[0].currentTime*1000,
+              arr        = arr.sort(function(a,b){return a-b}),
+              percent    = ele/this.duration;
+        /*var _index = function(ele, start, end) {
+          var val = parseInt(end/2);
+          if (start+1 === end) {
+            console.log('eee', end, start, ele, arr[end], arr[start], arr[val], val);
+            return start;
+          } else if (ele < arr[val]) { 
+            console.log('ppp', end, start, ele, arr[end], arr[start], arr[val], val);
+            return _index(ele, start, val);
+          } else if (ele > arr[val]) {
+            console.log('aaa', end, start, ele, arr[end], arr[start], arr[val], val);
+            return _index(ele, val++, end);
+          }
+        };*/
+          for (var i = 0; i < arr.length; i++) {
+            if (ele < arr[0]) {
+              if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i; }
+              break;
+            }
+            if (ele > arr[i])
+              if (ele < arr[i+1]) {
+                if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i+1; }
+                if (inst === 'p') { if (this.index > 0) this.index = i; }
+                break;
+              }
+            if (ele === arr[i]) {
+              if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i+1; }
+              if (inst === 'p') { if (this.index > 0) this.index = i-1; }
+              break;
+            }
+          }
           var index = this.index,
               point = arr[index]/1000;
           percent = point/this.duration;
@@ -374,8 +482,10 @@
       audio.wrapper.removeClass(player.playingClass);
     }, _loadError = function (audio) {
     }, _newPlayer = function(element, options) {
-      var s        = playerConfig,
+      var s        = {},
           settings = _settings();
+      s = _flashPlayer();
+      s.createPlayer = _playerMarkup();
       if (element.attr('autoplay') != null) settings.autoplay = true;
       if (element.attr('loop') != null) settings.loop = true;
       if (element.attr('preload') == 'none') settings.preload = false;
@@ -421,7 +531,14 @@
     }, _setTags = function(tag, audio) { 
       var player    = audio.config.createPlayer,
           scrubber  = angular.element(_q('.'+player.scrubberClass)),
-          tagHolder = angular.element(_q('.'+player.tagClass));
+          tagHolder = angular.element(_q('.'+player.tagClass)),
+          nextInst  = angular.element(_q('.'+player.nextInstClass)),
+          prevInst  = angular.element(_q('.'+player.prevInstClass));
+      nextInst.removeClass('audio-none');
+      if (tag.length === 0) {
+        nextInst.addClass('audio-none');
+        prevInst.addClass('audio-none')
+      }
       tagHolder.children().remove();
       for (var i = 0; i < tag.length; i++) {
         if (tag[i]/1000 < audio.duration) {
@@ -432,12 +549,13 @@
     }, _id = null, _tag = null, _url = null, _duration = null;
 
     return {
-      create : function(id, options) {
-        var element = angular.element(_q(id)),
-            options = options || null;
-        _id = id;
+      create : function(val, options) {
+        var element = angular.element(_q(val)),
+            options = options || null,
+            player  = null;
+        _id = val;
         _url = options.url;
-        var player = _newPlayer(element, options);
+        player = _newPlayer(element, options);
         $window.player = player;
         return player;
       },
@@ -453,72 +571,6 @@
           }, 10);
         };
         tagInterval();
-      },
-      trackEnd : function () {
-      
-      },
-      setVolume : function () {
-        
-      }
-    };
-  }]).
-  factory('playerConfig', [function() {
-    return { 
-      flashPlayer : '\
-        <object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" id="$1" width="1" height="1" name="$1" style="position: absolute; left: -1px;"> \
-          <param name="movie" value="$2?playerInstance=player&datetime=$3"> \
-          <param name="allowscriptaccess" value="always"> \
-          <embed name="$1" src="$2?playerInstance=player&datetime=$3" width="1" height="1" allowscriptaccess="always"> \
-        </object>',
-      createPlayer: {
-        markup: '\
-          <div class="audio-play-pause"> \
-            <p class="audio-play"></p> \
-            <p class="audio-pause"></p> \
-            <p class="audio-loading"></p> \
-            <p class="audio-error"></p> \
-          </div> \
-          <div class="audio-scrubber"> \
-            <div class="audio-progress"></div> \
-            <div class="audio-loaded"></div> \
-            <div class="audio-tags"></div> \
-          </div> \
-          <div class="audio-nextBack"> \
-            <div class="audio-prevInst audio-none"></div> \
-            <div class="audio-nextInst"></div> \
-          </div> \
-          <div class="audio-volume"> \
-            <div class="audio-speaker audio-speaker-ion"></div> \
-            <div class="audio-volume-holder"> \
-              <div class="audio-value"></div> \
-            </div> \
-            <div class="audio-clickdetect"></div> \
-          </div> \
-          <div class="audio-time"> \
-            <em class="audio-played">00:00</em>/<strong class="audio-duration">00:00</strong> \
-          </div> \
-          <div class="audio-error-message"></div>',
-        playPauseClass: 'audio-play-pause',
-        nextBackClass: 'audio-nextBack',
-        nextInstClass: 'audio-nextInst',
-        prevInstClass: 'audio-prevInst',
-        scrubberClass: 'audio-scrubber',
-        progressClass: 'audio-progress',
-        loaderClass: 'audio-loaded',
-        timeClass: 'audio-time',
-        durationClass: 'audio-duration',
-        playedClass: 'audio-played',
-        errorMessageClass: 'audio-error-message',
-        playingClass: 'audio-playing',
-        loadingClass: 'audio-loading',
-        tagClass: 'audio-tags',
-        errorClass: 'audio-error',
-        speakerClass: 'audio-speaker',
-        speakerOnClass: 'audio-speaker-ion',
-        speakerOfClass: 'audio-speaker-iof',
-        speakerScrubber: 'audio-volume-holder',
-        volumeClass: 'audio-value',
-        volumeClickClass: 'audio-clickdetect'
       }
     };
   }])
