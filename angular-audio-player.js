@@ -87,7 +87,7 @@
         if (percent && !inst) {
           percent = percent;
         } else {
-          var arr = this.settings.tags[_tag],
+          var arr = _tag,
               ele = this.element[0].currentTime,
               arr = arr.sort(function(a,b){return a-b});
           if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index++; }
@@ -291,7 +291,7 @@
         if (percent) {
           percent = percent;
         } else {
-          var arr = this.settings.tags[_tag],
+          var arr = _tag,
               ele = this.element[0].currentTime,
               arr = arr.sort(function(a,b){return a-b});
           if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index++; }
@@ -418,15 +418,14 @@
     }, _play = function (audio) {
       var player = audio.config.createPlayer;
       audio.wrapper.addClass(player.playingClass);
-    }, _setTags = function(audio) { 
-      var arr       = audio.settings.tags[_tag],
-          player    = audio.config.createPlayer,
+    }, _setTags = function(tag, audio) { 
+      var player    = audio.config.createPlayer,
           scrubber  = angular.element(_q('.'+player.scrubberClass)),
           tagHolder = angular.element(_q('.'+player.tagClass));
       tagHolder.children().remove();
-      for (var i = 0; i < arr.length; i++) {
-        if (arr[i]/1000 < audio.duration) {
-          var place = (arr[i]/(audio.duration*1000))*scrubber[0].offsetWidth;
+      for (var i = 0; i < tag.length; i++) {
+        if (tag[i]/1000 < audio.duration) {
+          var place = (tag[i]/(audio.duration*1000))*scrubber[0].offsetWidth;
           tagHolder.append('<div class="audio-tag" style="left:'+place+'px;"></div>');
         }
       }
@@ -447,7 +446,7 @@
         var tagInterval = function() {
           setTimeout(function() {  
             if (audio.duration > 1) {
-              _setTags(audio);
+              _setTags(tag, audio);
             } else {
               tagInterval();
             }
