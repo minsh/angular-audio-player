@@ -147,43 +147,37 @@
         if (percent && !inst) {
           percent = percent;
         } else {
-          var arr = _tag,
-              ele = (audio.playedPercent*audio.duration*1000),
-              arr = arr.sort(function(a,b){return a-b});
-          for (var i = 0; i < arr.length; i++) {
+          var ele     = audio.playedPercent*audio.duration*1000,
+              arr     = _tag,
+              percent = 0,
+              index   = 0;
+          if (arr.length === 1) index = 0;
+          else for (var i = 0; i < arr.length; i++) {
             if (ele < arr[0]) {
-              if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i; }
-              break;
+              if (inst === 'n') { index = 0; }
             }
-            if (ele > arr[arr.length-1]) {
-              if (inst === 'p') { if (audio.index > 0) audio.index = arr.length-1; }
-              break;
+            if (ele > arr[arr.length -1]) {
+              if (inst === 'p') { index = arr.length-1; }
             }
-            if (ele > arr[i])
-              if (ele < arr[i+1]) {
-                if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i+1; }
-                if (inst === 'p') { if (audio.index > 0) audio.index = i; }
-                break;
-              }
-            if (ele === arr[i]) {
-              if (inst === 'n') { if (audio.index < arr.length && audio.index !== arr.length-1) audio.index = i+1; }
-              if (inst === 'p') { if (audio.index > 0) audio.index = i-1; }
-              break;
+            if (ele > arr[i] && ele < arr[i+1]) {
+              if (inst === 'n') { index = i+1; }
+              if (inst === 'p') { index = i; }
+            }
+            if (ele === arr[i] || ele+50 > arr[i]) {
+              if (inst === 'n') { index = i+1; }
+              if (inst === 'p') { index = i-1; }
             }
           }
-          var index = audio.index,
-              point = arr[index]/1000;
-          percent = point/audio.duration;
-          if (audio.index === 0) prevInst.addClass('audio-none');
-          else prevInst.removeClass('audio-none');
-          if (audio.index === arr.length-1) nextInst.addClass('audio-none');
-          else nextInst.removeClass('audio-none');
+          percent = arr[index]/(audio.duration*1000);
         }
+        console.log(percent);
         audio.element[0].skipTo(percent);
         audio.updatePlayhead(percent);
       };
       audio['updatePlayhead'] = function(percent) {
         audio.playedPercent = percent;
+        if (_tag)
+          _nextPrevCheck(audio);
         _updatePlayhead(audio, [percent]);
       };
       audio['play'] = function() {
@@ -287,6 +281,8 @@
       });
       audio.element.bind('timeupdate', function (e) {
         audio.updatePlayhead();
+        if (_tag)
+          _nextPrevCheck(audio);
       });
       scrubber.bind('click', function(e) {
         var relativeLeft = e.offsetX ? e.offsetX : e.originalEvent.layerX;
@@ -294,6 +290,24 @@
       });
       if (_useFlash) return;
       _trackLoadProgress(audio);
+    }, _nextPrevCheck = function(audio) {
+      var player    = audio.config.createPlayer,
+          nextInst  = angular.element(_q('.'+player.nextInstClass)),
+          prevInst  = angular.element(_q('.'+player.prevInstClass)),
+          curntTime = audio.element[0].currentTime !== undefined ? audio.element[0].currentTime : (audio.playedPercent*audio.duration),
+          tag       = _tag;
+      if (curntTime <= tag[0]/1000) {
+        prevInst.addClass('audio-none');
+        nextInst.removeClass('audio-none');
+      }
+      if (curntTime >= tag[tag.length-1]/1000) {
+        nextInst.addClass('audio-none');
+        prevInst.removeClass('audio-none');
+      }
+      if (curntTime > tag[0]/1000 && curntTime < tag[tag.length-1]/1000) {
+        nextInst.removeClass('audio-none');
+        prevInst.removeClass('audio-none');
+      }
     }, _skipTo = function (audio, percent) {
       audio.element[0].currentTime = audio.duration * percent;
       audio.updatePlayhead();
@@ -353,11 +367,11 @@
         var source = element.children(_q('script'))[0];
         return element.attr('src') || (source ? source.attr('src') : null);
       })(element);
-      this.index = -1;
       this.loadStartedCalled = false;
       this.loadedPercent = 0;
       this.duration = 1;
       this.playing = false;
+      this.playedPercent = 0;
 
       _audio.prototype.updatePlayhead = function() {
         var percent = this.element[0].currentTime / this.duration;
@@ -370,47 +384,28 @@
         if (percent) {
           percent = percent;
         } else {
-          var arr        = _tag,
-              ele        = this.element[0].currentTime*1000,
-              arr        = arr.sort(function(a,b){return a-b}),
-              percent    = ele/this.duration;
-        /*var _index = function(ele, start, end) {
-          var val = parseInt(end/2);
-          if (start+1 === end) {
-            console.log('eee', end, start, ele, arr[end], arr[start], arr[val], val);
-            return start;
-          } else if (ele < arr[val]) { 
-            console.log('ppp', end, start, ele, arr[end], arr[start], arr[val], val);
-            return _index(ele, start, val);
-          } else if (ele > arr[val]) {
-            console.log('aaa', end, start, ele, arr[end], arr[start], arr[val], val);
-            return _index(ele, val++, end);
-          }
-        };*/
-          for (var i = 0; i < arr.length; i++) {
+          var ele     = this.element[0].currentTime*1000,
+              arr     = _tag,
+              percent = 0,
+              index   = 0;
+          if (arr.length === 1) index = 0;
+          else for (var i = 0; i < arr.length; i++) {
             if (ele < arr[0]) {
-              if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i; }
-              break;
+              if (inst === 'n') { index = 0; }
             }
-            if (ele > arr[i])
-              if (ele < arr[i+1]) {
-                if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i+1; }
-                if (inst === 'p') { if (this.index > 0) this.index = i; }
-                break;
-              }
-            if (ele === arr[i]) {
-              if (inst === 'n') { if (this.index < arr.length && this.index !== arr.length-1) this.index = i+1; }
-              if (inst === 'p') { if (this.index > 0) this.index = i-1; }
-              break;
+            if (ele > arr[arr.length -1]) {
+              if (inst === 'p') { index = arr.length-1; }
+            }
+            if (ele > arr[i] && ele < arr[i+1]) {
+              if (inst === 'n') { index = i+1; }
+              if (inst === 'p') { index = i; }
+            }
+            if (ele === arr[i] || ele+50 > arr[i]) {
+              if (inst === 'n') { index = i+1; }
+              if (inst === 'p') { index = i-1; }
             }
           }
-          var index = this.index,
-              point = arr[index]/1000;
-          percent = point/this.duration;
-          if (this.index === 0) prevInst.addClass('audio-none');
-          else prevInst.removeClass('audio-none');
-          if (this.index === arr.length-1) nextInst.addClass('audio-none');
-          else nextInst.removeClass('audio-none');
+          percent = arr[index]/(this.duration*1000);
         }
         _skipTo(this, percent);
       };
@@ -533,8 +528,9 @@
           scrubber  = angular.element(_q('.'+player.scrubberClass)),
           tagHolder = angular.element(_q('.'+player.tagClass)),
           nextInst  = angular.element(_q('.'+player.nextInstClass)),
-          prevInst  = angular.element(_q('.'+player.prevInstClass));
-      nextInst.removeClass('audio-none');
+          prevInst  = angular.element(_q('.'+player.prevInstClass)),
+          curntTime = audio.element[0].currentTime;
+      _nextPrevCheck(audio);
       if (tag.length === 0) {
         nextInst.addClass('audio-none');
         prevInst.addClass('audio-none')
@@ -560,7 +556,7 @@
         return player;
       },
       setTag : function (tag, audio) {
-        _tag = tag;
+        _tag = tag.sort(function(a,b) {return a-b;});
         var tagInterval = function() {
           setTimeout(function() {  
             if (audio.duration > 1) {
